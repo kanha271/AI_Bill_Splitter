@@ -1,4 +1,5 @@
 import os
+import tempfile
 from typing import Dict, List, Optional
 
 from fastapi import FastAPI, File, UploadFile
@@ -18,9 +19,6 @@ app = FastAPI(
 )
 
 
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
 app.mount(
     "/static",
     StaticFiles(directory="app/static"),
@@ -30,9 +28,7 @@ app.mount(
 
 @app.get("/")
 async def home():
-    return FileResponse(
-        "app/static/index.html"
-    )
+    return FileResponse("app/static/index.html")
 
 
 @app.get("/health")
@@ -44,48 +40,60 @@ async def health():
 
 
 @app.post("/upload")
-async def upload_bill(
-    file: UploadFile = File(...)
-):
-    file_path = os.path.join(
-        UPLOAD_DIR,
-        file.filename
-    )
+async def upload_bill(file: UploadFile = File(...)):
+    """
+    Temporarily stores an uploaded bill.
+    The temporary file is automatically deleted after the request.
+    """
 
-    with open(file_path, "wb") as buffer:
-        buffer.write(
-            await file.read()
-        )
+    suffix = os.path.splitext(file.filename or "")[1] or ".jpg"
 
-    return {
-        "message": "Bill uploaded successfully",
-        "filename": file.filename
-    }
+    temp_path = None
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=suffix
+        ) as temp_file:
+
+            temp_path = temp_file.name
+            temp_file.write(await file.read())
+
+        return {
+            "message": "Bill uploaded successfully"
+        }
+
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
-@app.post(
-    "/extract",
-    response_model=ExtractionResponse
-)
+@app.post("/extract", response_model=ExtractionResponse)
 async def extract_bill_endpoint(
     file: UploadFile = File(...)
 ):
+    """
+    Upload a bill image, temporarily save it,
+    send it to the AI extractor, then delete it.
+    """
 
-    file_path = os.path.join(
-        UPLOAD_DIR,
-        file.filename
-    )
+    suffix = os.path.splitext(file.filename or "")[1] or ".jpg"
+
+    temp_path = None
 
     try:
 
-        with open(file_path, "wb") as buffer:
-            buffer.write(
-                await file.read()
-            )
+        # Create temporary file
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=suffix
+        ) as temp_file:
 
-        bill = await extract_bill(
-            file_path
-        )
+            temp_path = temp_file.name
+            temp_file.write(await file.read())
+
+        # Extract bill using AI
+        bill = await extract_bill(temp_path)
 
         return ExtractionResponse(
             success=True,
@@ -95,31 +103,33 @@ async def extract_bill_endpoint(
 
     except Exception as e:
 
-        error_text = str(e)
-
         print(
             f"Extraction error: "
-            f"{type(e).__name__}: {error_text}"
+            f"{type(e).__name__}: {e}"
         )
 
-        if "429" in error_text or "quota" in error_text.lower():
+        if "429" in str(e) or "quota" in str(e).lower():
 
             message = (
-                "AI extraction quota is temporarily "
-                "exhausted. Please try again later."
+                "AI extraction quota is temporarily exhausted. "
+                "Please try again later."
             )
 
         else:
 
-            message = (
-                f"Extraction failed: {error_text}"
-            )
+            message = f"Extraction failed: {e}"
 
         return ExtractionResponse(
             success=False,
             bill=None,
             message=message
         )
+
+    finally:
+
+        # Always delete temporary image
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 class SplitRequest(BaseModel):
