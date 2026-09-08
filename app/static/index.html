@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Bill Splitter</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div>
+                <h1>AI Bill Splitter</h1>
+                <p>Extract, review and fairly split your bill.</p>
+            </div>
+        </header>
+
+        <section id="uploadSection" class="section">
+            <div class="card upload-card">
+                <div class="icon">🧾</div>
+                <h2>Upload your bill</h2>
+                <p class="muted">Upload a clear photo of your restaurant bill.</p>
+
+                <input type="file" id="billImage" accept="image/*" hidden>
+
+                <button type="button" class="primary-button" id="chooseImageButton">
+                    Choose Bill Image
+                </button>
+
+                <p id="selectedFile" class="file-name"></p>
+
+                <button type="button" id="extractButton" class="primary-button hidden">
+                    Extract Bill
+                </button>
+
+                <div id="uploadStatus"></div>
+            </div>
+        </section>
+
+        <section id="reviewSection" class="section hidden">
+            <div class="section-header">
+                <div>
+                    <span class="step-label">STEP 2</span>
+                    <h2>Review extracted bill</h2>
+                    <p class="muted">
+                        Check the AI extraction and correct anything that looks wrong.
+                        Calculations will happen only after you confirm.
+                    </p>
+                </div>
+            </div>
+
+            <div class="review-notice">
+                <span>⚠️</span>
+                <div>
+                    <strong>Human review required</strong>
+                    <p>
+                        AI extraction may contain mistakes. Review item names,
+                        quantities and prices before continuing.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Items</h3>
+                    <span id="itemCount" class="badge">0 items</span>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Total</th>
+                                <th>Confidence</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTableBody"></tbody>
+                    </table>
+                </div>
+
+                <button type="button" class="secondary-button" id="addItemButton">
+                    + Add Item
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Bill Summary</h3>
+                </div>
+
+                <div id="totalVerification"></div>
+
+                <div class="summary-grid">
+                    <label>
+                        Subtotal
+                        <input type="number" id="subtotal" step="0.01" min="0">
+                    </label>
+
+                    <label>
+                        Discount
+                        <input type="number" id="discount" step="0.01" min="0">
+                    </label>
+
+                    <label>
+                        Tax / GST
+                        <input type="number" id="tax" step="0.01" min="0">
+                    </label>
+
+                    <label>
+                        Service Charge
+                        <input type="number" id="serviceCharge" step="0.01" min="0">
+                    </label>
+
+                    <label class="total-field">
+                        Final Total
+                        <input type="number" id="total" step="0.01" min="0">
+                    </label>
+                </div>
+            </div>
+
+            <div class="review-actions">
+                <button type="button" class="secondary-button" id="resetButton">
+                    ← Start Over
+                </button>
+                <button type="button" class="primary-button" id="continueButton">
+                    Continue to Split →
+                </button>
+            </div>
+        </section>
+        
+        <section id="assignmentSection" class="section hidden">
+
+            <div class="section-header">
+
+                <div>
+                    <span class="step-label">STEP 3</span>
+
+                    <h2>Split the bill</h2>
+
+                    <p class="muted">
+                        Add everyone at the table and tell us
+                        who consumed each item.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <!-- PEOPLE -->
+
+            <div class="card">
+
+                <div class="card-header">
+
+                    <h3>People</h3>
+
+                    <span id="peopleCount" class="badge">
+                        0 people
+                    </span>
+
+                </div>
+
+
+                <div id="peopleList" class="people-list"></div>
+
+
+                <div class="add-person-row">
+
+                    <input
+                        type="text"
+                        id="personName"
+                        placeholder="Enter person's name"
+                    >
+
+                    <button
+                        type="button"
+                        class="secondary-button"
+                        onclick="addPerson()"
+                    >
+                        + Add Person
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- ITEM ASSIGNMENTS -->
+
+            <div class="card">
+
+                <div class="card-header">
+
+                    <div>
+                        <h3>Who consumed what?</h3>
+
+                        <p class="muted small-text">
+                            Enter how much of each item each person consumed.
+                            Use "Equal Split" for an even division.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div id="assignmentList"></div>
+
+            </div>
+
+
+            <!-- ACTIONS -->
+
+            <div class="review-actions">
+
+                <button
+                    type="button"
+                    class="secondary-button"
+                    onclick="backToReview()"
+                >
+                    ← Back to Review
+                </button>
+
+                <button
+                    type="button"
+                    class="primary-button"
+                    onclick="calculateSplit()"
+                >
+                    Calculate Split →
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- ========================= -->
+        <!-- STEP 4: RESULTS -->
+        <!-- ========================= -->
+
+        <section id="resultsSection" class="section hidden">
+
+            <div class="section-header">
+
+                <div>
+                    <span class="step-label">STEP 4</span>
+
+                    <h2>Bill Split Results</h2>
+
+                    <p class="muted">
+                        Here's what each person owes.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div
+                id="resultsList"
+                class="results-list"
+            ></div>
+
+
+            <div class="results-actions">
+
+                <button
+                    type="button"
+                    class="secondary-button"
+                    onclick="resetApp()"
+                >
+                    Split Another Bill
+                </button>
+
+            </div>
+
+        </section>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
