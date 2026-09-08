@@ -1220,10 +1220,15 @@ The goal is not simply to read a receipt, but to create a complete pipeline from
 
 ## Application Interface
 
+### Original Bill
+
+![Original Bill](screenshots/1.jpeg)
+
+---
+
 ### Bill Upload
 
-![Bill Upload](image-1.png)
-![Original bill](1.jpeg)
+![Bill Upload](screenshots/image-1.png)
 
 ---
 
@@ -1231,17 +1236,31 @@ The goal is not simply to read a receipt, but to create a complete pipeline from
 
 The extracted bill information is displayed for review. Item names, quantities, prices, totals, and confidence values can be inspected and corrected before proceeding.
 
-![AI Extraction and Human Review](image-2.png)
-![continue](image-3.png)
+![AI Extraction and Human Review](screenshots/image-2.png)
 
 ---
 
+### Quantity-Based Assignment
+
+Add the people sharing the bill and assign the quantity of each item consumed by each person.
+
+![Quantity-Based Assignment](screenshots/image-3.png)
+
+---
 
 ### Bill Split Results
 
 The application calculates each person's item subtotal, discount, tax, service charge, and final amount.
 
-![Split Results](image-6.png)
+![Bill Split Results](screenshots/image-4.png)
+
+---
+
+### Printed Total Verification
+
+The application highlights a discrepancy when the calculated total differs from the printed total on the receipt.
+
+![Printed Total Verification](screenshots/image-6.png)
 
 ---
 
