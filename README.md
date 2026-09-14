@@ -1282,9 +1282,6 @@ A recommended demonstration flow is:
 10. Show proportional tax/service-charge allocation
 11. Demonstrate printed-total discrepancy detection
 ```
-
-**Demo Video:** Add the final demo video link here.
-
 ---
 
 # License
